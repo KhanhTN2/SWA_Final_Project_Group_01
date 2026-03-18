@@ -7,7 +7,7 @@ ROOT_DIR=$(cd -- "$SCRIPT_DIR/.." && pwd)
 TERRAFORM_DIR=${TERRAFORM_DIR:-"$ROOT_DIR/infra/terraform"}
 DEMO_STATE_FILE=${DEMO_STATE_FILE:-"$ROOT_DIR/.demo-day-state.env"}
 PROJECT_NAME=${PROJECT_NAME:-aws-modernized-demo}
-AWS_REGION=${AWS_DEFAULT_REGION:-${AWS_REGION:-us-east-1}}
+AWS_REGION=${AWS_DEFAULT_REGION:-${AWS_REGION:-us-east-2}}
 
 SERVICES=("order-service" "inventory-service" "notification-service")
 

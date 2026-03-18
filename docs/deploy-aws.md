@@ -24,6 +24,40 @@ The Terraform under `infra/terraform/` is structured to provision:
 - container images pushed to ECR
 - a target AWS region selected
 
+## Authenticate The AWS CLI
+
+Use one of these two methods before running Terraform or the demo helper scripts.
+
+### Option 1: IAM Identity Center / AWS SSO
+
+Recommended when your AWS account is managed by an organization:
+
+```bash
+aws configure sso --profile demo
+aws sso login --profile demo
+aws sts get-caller-identity --profile demo
+```
+
+If the AWS CLI cannot open a browser on your machine:
+
+```bash
+aws configure sso --use-device-code --profile demo
+```
+
+### Option 2: Access Key And Secret Key
+
+Use this if you were given IAM user access keys:
+
+```bash
+aws configure --profile demo
+aws sts get-caller-identity --profile demo
+```
+
+Typical values during `aws configure`:
+
+- `Default region name`: `us-east-2`
+- `Default output format`: `json`
+
 ## Suggested Deployment Flow
 
 1. Build and push images:
@@ -40,7 +74,7 @@ docker build -t <ecr>/notification-service:latest code/notification-service
 cd infra/terraform
 terraform init
 terraform apply \
-  -var "aws_region=us-east-1" \
+  -var "aws_region=us-east-2" \
   -var "order_service_image=<ecr>/order-service:latest" \
   -var "inventory_service_image=<ecr>/inventory-service:latest" \
   -var "notification_service_image=<ecr>/notification-service:latest"
@@ -53,7 +87,7 @@ terraform apply \
 
 ```bash
 AWS_PROFILE=demo \
-AWS_DEFAULT_REGION=us-east-1 \
+AWS_DEFAULT_REGION=us-east-2 \
 AWS_DEMO_USERNAME='<cognito-username>' \
 AWS_DEMO_PASSWORD='<cognito-password>' \
 python3 scripts/run-aws-demo.py
@@ -65,7 +99,7 @@ If you want a fresh environment for each demo instead of pausing the existing on
 
 ```bash
 export AWS_PROFILE=demo
-export AWS_DEFAULT_REGION=us-east-1
+export AWS_DEFAULT_REGION=us-east-2
 export AWS_PAGER=""
 export AWS_DEMO_USERNAME='demo-user'
 export AWS_DEMO_PASSWORD='DemoPassw0rd!'
@@ -74,21 +108,21 @@ export AWS_DEMO_PASSWORD='DemoPassw0rd!'
 The simplest end-to-end reset is:
 
 ```bash
-AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-1 \
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
 bash scripts/rebuild-demo-stack.sh
 ```
 
 If you want to run the steps separately, destroy first:
 
 ```bash
-AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-1 \
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
 bash scripts/destroy-demo-stack.sh
 ```
 
 Then reapply with the same image inputs saved by the destroy step:
 
 ```bash
-AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-1 \
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
 bash scripts/apply-demo-stack.sh
 ```
 
@@ -147,14 +181,14 @@ After deployment, verify both sidecars are healthy in the ECS task view before e
 Pause the stack between sessions:
 
 ```bash
-AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-1 \
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
 bash scripts/pause-demo.sh
 ```
 
 Resume the stack before the next session:
 
 ```bash
-AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-1 \
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
 bash scripts/resume-demo.sh
 ```
 

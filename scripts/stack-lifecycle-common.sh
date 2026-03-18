@@ -21,7 +21,7 @@ require_command() {
 }
 
 current_region() {
-  printf '%s\n' "${AWS_DEFAULT_REGION:-${AWS_REGION:-us-east-1}}"
+  printf '%s\n' "${AWS_DEFAULT_REGION:-${AWS_REGION:-us-east-2}}"
 }
 
 aws_cli() {

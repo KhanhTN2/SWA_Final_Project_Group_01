@@ -78,7 +78,7 @@ app:
     read-scope: ${APP_SECURITY_READ_SCOPE:orders/read}
     write-scope: ${APP_SECURITY_WRITE_SCOPE:orders/write}
   aws:
-    region: ${AWS_REGION:us-east-1}
+    region: ${AWS_REGION:us-east-2}
   app-config:
     enabled: ${APPCONFIG_ENABLED:false}
     base-url: ${APPCONFIG_BASE_URL:http://localhost:2772}

@@ -95,7 +95,7 @@ public class AppProperties {
     }
 
     public static class Aws {
-        private String region = "us-east-1";
+        private String region = "us-east-2";
 
         public String getRegion() {
             return region;

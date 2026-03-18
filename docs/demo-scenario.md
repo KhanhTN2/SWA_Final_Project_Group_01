@@ -15,7 +15,7 @@ Export the common shell variables first:
 
 ```bash
 export AWS_PROFILE=demo
-export AWS_DEFAULT_REGION=us-east-1
+export AWS_DEFAULT_REGION=us-east-2
 export AWS_PAGER=""
 export AWS_DEMO_USERNAME='demo-user'
 export AWS_DEMO_PASSWORD='DemoPassw0rd!'
@@ -24,7 +24,7 @@ export AWS_DEMO_PASSWORD='DemoPassw0rd!'
 If you want a clean environment for every demo, rebuild the stack instead of resuming it:
 
 ```bash
-AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-1 \
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
 bash scripts/rebuild-demo-stack.sh
 ```
 
@@ -38,7 +38,7 @@ Notes:
 If the stack was only parked, resume it instead:
 
 ```bash
-AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-1 \
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
 bash scripts/resume-demo.sh
 ```
 
@@ -81,13 +81,13 @@ What to say while this runs:
 Show that the order event was published and consumed by filtering logs with the same correlation ID:
 
 ```bash
-AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-1 \
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
 aws logs tail /ecs/aws-modernized-demo/order-service --since 5m --format short | \
 grep -E 'demo-happy-path-001|Published order-created event'
 ```
 
 ```bash
-AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-1 \
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
 aws logs tail /ecs/aws-modernized-demo/notification-service --since 5m --format short | \
 grep -E 'demo-happy-path-001|Notification processed'
 ```
@@ -111,13 +111,13 @@ Simulate inventory unavailability by scaling `inventory-service` to zero:
 ```bash
 CLUSTER_NAME=$(terraform -chdir=infra/terraform output -raw ecs_cluster_name)
 
-AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-1 \
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
 aws ecs update-service \
   --cluster "$CLUSTER_NAME" \
   --service inventory-service \
   --desired-count 0
 
-AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-1 \
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
 aws ecs wait services-stable \
   --cluster "$CLUSTER_NAME" \
   --services inventory-service
@@ -141,13 +141,13 @@ Expected result:
 Show that the async event still flows even during fallback:
 
 ```bash
-AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-1 \
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
 aws logs tail /ecs/aws-modernized-demo/order-service --since 5m --format short | \
 grep -E 'demo-fallback-001|Published order-created event'
 ```
 
 ```bash
-AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-1 \
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
 aws logs tail /ecs/aws-modernized-demo/notification-service --since 5m --format short | \
 grep -E 'demo-fallback-001|Notification processed'
 ```
@@ -162,13 +162,13 @@ Optional note:
 Bring `inventory-service` back:
 
 ```bash
-AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-1 \
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
 aws ecs update-service \
   --cluster "$CLUSTER_NAME" \
   --service inventory-service \
   --desired-count 1
 
-AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-1 \
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
 aws ecs wait services-stable \
   --cluster "$CLUSTER_NAME" \
   --services inventory-service
@@ -192,7 +192,7 @@ aws ecs wait services-stable \
 If you want to park the stack after the demo:
 
 ```bash
-AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-1 \
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
 bash scripts/pause-demo.sh
 ```
 
@@ -204,14 +204,14 @@ Reminder:
 If you want to fully tear the demo stack down after the session, use the destroy helper:
 
 ```bash
-AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-1 \
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
 bash scripts/destroy-demo-stack.sh
 ```
 
 If you want to rebuild the stack from scratch before the next session, use:
 
 ```bash
-AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-1 \
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
 bash scripts/rebuild-demo-stack.sh
 ```
 

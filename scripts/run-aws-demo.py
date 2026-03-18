@@ -30,7 +30,7 @@ def parse_args():
     parser.add_argument("--password", default=os.environ.get("AWS_DEMO_PASSWORD"), help="Cognito password")
     parser.add_argument("--product-number", default="PROD001", help="Product number to query and order")
     parser.add_argument("--quantity", type=int, default=2, help="Order quantity")
-    parser.add_argument("--region", default=os.environ.get("AWS_DEFAULT_REGION", "us-east-1"), help="AWS region for the Cognito hosted UI")
+    parser.add_argument("--region", default=os.environ.get("AWS_DEFAULT_REGION", "us-east-2"), help="AWS region for the Cognito hosted UI")
     parser.add_argument("--correlation-id", default=f"aws-demo-{uuid4()}", help="Correlation ID to attach to the demo request")
     parser.add_argument(
         "--skip-product-check",
