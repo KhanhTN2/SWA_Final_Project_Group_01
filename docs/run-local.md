@@ -58,6 +58,29 @@ Expected behavior:
 - the response status field becomes `PENDING_INVENTORY`
 - `notification-service` still logs the order-created event
 
+The local compose stack runs a single `inventory-service` container, so local proves fallback and circuit-breaking behavior, not replica failover from one inventory instance to another.
+
+To prove the circuit breaker itself opened, keep `inventory-service` stopped and send several read requests:
+
+```bash
+for i in 1 2 3 4; do
+  curl http://localhost:8081/api/product/PROD001
+  echo
+done
+```
+
+Then inspect the `order-service` logs:
+
+```bash
+docker compose -f docker-compose.local.yml logs order-service | \
+grep -E 'Circuit breaker inventoryService'
+```
+
+Expected log sequence:
+
+- `Circuit breaker inventoryService state transition CLOSED_TO_OPEN`
+- `Circuit breaker inventoryService rejected a call because it is OPEN`
+
 ## Useful Commands
 
 View service logs:

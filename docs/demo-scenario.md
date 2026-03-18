@@ -6,8 +6,9 @@ Show the AWS-targeted architecture in one short session:
 
 - authenticated access through API Gateway and Cognito
 - synchronous service-to-service REST over ECS Service Connect / Cloud Map
+- inventory replica failover when one `inventory-service` task stops
 - asynchronous Kafka publish and consume through MSK Serverless
-- fallback behavior when `inventory-service` is unavailable
+- circuit-breaker fallback behavior when `inventory-service` is unavailable
 
 ## Pre-Demo Checklist
 
@@ -104,13 +105,90 @@ What this proves:
 - Kafka publication succeeded against MSK Serverless
 - `notification-service` consumed the event asynchronously
 
-## Demo 2: Fallback Path
+## Demo 2: Inventory Instance Failover
 
-Simulate inventory unavailability by scaling `inventory-service` to zero:
+This is a normal-success demo. It proves service-to-service failover, not circuit breaking. The current circuit breaker should stay closed because one healthy `inventory-service` task remains available the whole time.
+
+Scale `inventory-service` to two tasks first:
 
 ```bash
 CLUSTER_NAME=$(terraform -chdir=infra/terraform output -raw ecs_cluster_name)
 
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
+aws ecs update-service \
+  --cluster "$CLUSTER_NAME" \
+  --service inventory-service \
+  --desired-count 2
+
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
+aws ecs wait services-stable \
+  --cluster "$CLUSTER_NAME" \
+  --services inventory-service
+
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
+aws ecs list-tasks \
+  --cluster "$CLUSTER_NAME" \
+  --service-name inventory-service \
+  --query 'taskArns' \
+  --output text
+```
+
+Stop one of the two running inventory tasks:
+
+```bash
+INVENTORY_TASK_TO_STOP=$(
+  AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
+  aws ecs list-tasks \
+    --cluster "$CLUSTER_NAME" \
+    --service-name inventory-service \
+    --query 'taskArns[0]' \
+    --output text
+)
+
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
+aws ecs stop-task \
+  --cluster "$CLUSTER_NAME" \
+  --task "$INVENTORY_TASK_TO_STOP" \
+  --reason "demo one inventory replica stopped"
+```
+
+Now run the standard end-to-end flow:
+
+```bash
+python3 scripts/run-aws-demo.py \
+  --correlation-id demo-failover-001
+```
+
+Expected result:
+
+- `productCheck.status` is `200`
+- `orderCreate.status` is `201`
+- `orderCreate.body.status` is `RESERVED`
+- `orderLookup.status` is `200`
+- the user-visible flow still works normally because Service Connect / Cloud Map routes to the remaining healthy inventory task
+
+Show the difference between failover and CB by checking the `order-service` logs:
+
+```bash
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
+aws logs tail /ecs/aws-modernized-demo/order-service --since 5m --format short | \
+grep -E 'demo-failover-001|Circuit breaker inventoryService'
+```
+
+What this proves:
+
+- stopping one replica does not break the user flow
+- this is ECS + Service Connect failover across inventory tasks
+- if one healthy inventory task remains, the circuit breaker should stay closed
+- Demo 2 is intentionally not the breaker demo
+
+## Demo 3: Circuit Breaker Open + Fallback
+
+This is the only breaker/fallback demo in the sequence.
+
+Simulate inventory unavailability by scaling `inventory-service` to zero:
+
+```bash
 AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
 aws ecs update-service \
   --cluster "$CLUSTER_NAME" \
@@ -123,43 +201,87 @@ aws ecs wait services-stable \
   --services inventory-service
 ```
 
-Now run the helper in order-only mode:
+Trigger enough failed calls to open the breaker. The current configuration in `order-service` uses a count window of `5`, needs at least `3` calls, and opens when failures reach `50%`.
 
 ```bash
-python3 scripts/run-aws-demo.py \
-  --skip-product-check \
-  --correlation-id demo-fallback-001
+for i in 1 2 3 4; do
+  python3 scripts/run-aws-demo.py \
+    --skip-product-check \
+    --correlation-id "demo-cb-open-00${i}"
+done
 ```
 
 Expected result:
 
-- `orderCreate.status` is `201`
+- each request still returns `201`, so the demo remains user-visible
 - `orderCreate.body.status` is `PENDING_INVENTORY`
-- `orderCreate.body.message` says the inventory service is unavailable and a fallback order was created
-- `orderLookup.status` is `200`
+- after the repeated failures, `order-service` logs `Circuit breaker inventoryService state transition CLOSED_TO_OPEN`
+- the later calls are short-circuited and log `Circuit breaker inventoryService rejected a call because it is OPEN`
 
-Show that the async event still flows even during fallback:
+Show that the breaker actually opened and that the async event still flows:
 
 ```bash
 AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
 aws logs tail /ecs/aws-modernized-demo/order-service --since 5m --format short | \
-grep -E 'demo-fallback-001|Published order-created event'
+grep -E 'demo-cb-open-|Published order-created event|Circuit breaker inventoryService'
 ```
 
 ```bash
 AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
 aws logs tail /ecs/aws-modernized-demo/notification-service --since 5m --format short | \
-grep -E 'demo-fallback-001|Notification processed'
+grep -E 'demo-cb-open-|Notification processed'
 ```
 
-Optional note:
+What this proves:
 
-- one failed call is enough to show fallback behavior
-- repeated failures will continue to feed the configured Resilience4j circuit breaker state machine in `order-service`
+- fallback responses alone do not prove an open breaker
+- the `CLOSED_TO_OPEN` and `rejected a call because it is OPEN` log lines are the proof
+- the order flow and Kafka event publication still continue while the downstream inventory service is unavailable
+- Demo 3, not Demo 2, is where breaker behavior is intentionally demonstrated
 
-## Restore After Fallback Demo
+## Restore After Circuit Breaker Demo
 
 Bring `inventory-service` back:
+
+```bash
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
+aws ecs update-service \
+  --cluster "$CLUSTER_NAME" \
+  --service inventory-service \
+  --desired-count 2
+
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
+aws ecs wait services-stable \
+  --cluster "$CLUSTER_NAME" \
+  --services inventory-service
+```
+
+Wait slightly longer than the configured open-state duration, then send two healthy requests so the breaker can transition through half-open back to closed:
+
+```bash
+sleep 12
+
+python3 scripts/run-aws-demo.py \
+  --correlation-id demo-cb-recover-001
+
+python3 scripts/run-aws-demo.py \
+  --correlation-id demo-cb-recover-002
+```
+
+Confirm recovery:
+
+```bash
+AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
+aws logs tail /ecs/aws-modernized-demo/order-service --since 5m --format short | \
+grep -E 'demo-cb-recover-|Circuit breaker inventoryService'
+```
+
+Expected recovery log sequence:
+
+- `Circuit breaker inventoryService state transition OPEN_TO_HALF_OPEN`
+- `Circuit breaker inventoryService state transition HALF_OPEN_TO_CLOSED`
+
+If you want to return to the normal baseline after the demo, scale `inventory-service` back to one task:
 
 ```bash
 AWS_PROFILE=demo AWS_DEFAULT_REGION=us-east-2 \
