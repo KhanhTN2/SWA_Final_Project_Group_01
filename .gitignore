@@ -1,0 +1,35 @@
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.iml
+
+# Local environment / credentials
+.env
+.env.*
+!.env.example
+!.env.sample
+*.local
+.demo-day-state.env
+.destroy-demo-images.env
+
+# Java / Maven build output
+**/target/
+
+# Terraform local state and secrets
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+crash.log
+crash.*.log
+*.tfplan
+plan.out
+
+# Local logs
+*.log

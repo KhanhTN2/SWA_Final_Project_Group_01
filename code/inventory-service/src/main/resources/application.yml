@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: inventory-service
+
+server:
+  port: 8080
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+
+app:
+  fail-mode: ${APP_INVENTORY_FAIL_MODE:false}

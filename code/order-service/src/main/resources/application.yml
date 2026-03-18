@@ -1,0 +1,85 @@
+spring:
+  application:
+    name: order-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/orderdb}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    defer-datasource-initialization: true
+    properties:
+      hibernate:
+        format_sql: true
+  sql:
+    init:
+      mode: ${SPRING_SQL_INIT_MODE:always}
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:19092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        enable.idempotence: false
+        spring.json.add.type.headers: false
+    properties:
+      request.timeout.ms: 30000
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${COGNITO_ISSUER_URI:}
+
+server:
+  port: 8080
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
+  endpoints:
+    web:
+      exposure:
+        include: health,info,circuitbreakers
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      inventoryService:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 5
+        minimumNumberOfCalls: 3
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 2
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+app:
+  inventory:
+    base-url: ${INVENTORY_SERVICE_BASE_URL:http://inventory-service:8080}
+  kafka:
+    order-created-topic: ${ORDER_CREATED_TOPIC:orders.created}
+  security:
+    enabled: ${APP_SECURITY_ENABLED:false}
+    audience: ${COGNITO_AUDIENCE:}
+    read-scope: ${APP_SECURITY_READ_SCOPE:orders/read}
+    write-scope: ${APP_SECURITY_WRITE_SCOPE:orders/write}
+  aws:
+    region: ${AWS_REGION:us-east-1}
+  app-config:
+    enabled: ${APPCONFIG_ENABLED:false}
+    base-url: ${APPCONFIG_BASE_URL:http://localhost:2772}
+    resource-path: ${APPCONFIG_RESOURCE_PATH:/applications/order-platform/environments/demo/configurations/runtime}

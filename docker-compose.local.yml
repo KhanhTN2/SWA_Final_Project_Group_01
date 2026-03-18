@@ -1,0 +1,99 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: order-postgres
+    environment:
+      POSTGRES_DB: orderdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d orderdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.3.5
+    container_name: redpanda
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp
+      - "1"
+      - --memory
+      - "512M"
+      - --reserve-memory
+      - "0M"
+      - --node-id
+      - "0"
+      - --check=false
+      - --kafka-addr
+      - PLAINTEXT://0.0.0.0:9092,OUTSIDE://0.0.0.0:19092
+      - --advertise-kafka-addr
+      - PLAINTEXT://redpanda:9092,OUTSIDE://localhost:19092
+    ports:
+      - "19092:19092"
+      - "9644:9644"
+
+  inventory-service:
+    build:
+      context: ./code/inventory-service
+    container_name: inventory-service
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://host.docker.internal:4317
+      APP_INVENTORY_FAIL_MODE: "false"
+    ports:
+      - "8082:8080"
+    depends_on:
+      redpanda:
+        condition: service_started
+    restart: unless-stopped
+
+  order-service:
+    build:
+      context: ./code/order-service
+    container_name: order-service
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/orderdb
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      INVENTORY_SERVICE_BASE_URL: http://inventory-service:8080
+      ORDER_CREATED_TOPIC: orders.created
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://host.docker.internal:4317
+    ports:
+      - "8081:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      inventory-service:
+        condition: service_started
+      redpanda:
+        condition: service_started
+    restart: unless-stopped
+
+  notification-service:
+    build:
+      context: ./code/notification-service
+    container_name: notification-service
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      ORDER_CREATED_TOPIC: orders.created
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://host.docker.internal:4317
+    ports:
+      - "8083:8080"
+    depends_on:
+      redpanda:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
