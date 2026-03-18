@@ -1,5 +1,7 @@
 # AWS Target Architecture
 
+Architecture diagram: [docs/aws-architecture-diagram.md](./aws-architecture-diagram.md)
+
 ## Current State
 
 The original backend was a two-service Spring Boot demo:

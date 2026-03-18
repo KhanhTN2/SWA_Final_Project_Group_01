@@ -176,6 +176,7 @@ More detail: [docs/deploy-aws.md](docs/deploy-aws.md) and [docs/demo-scenario.md
 
 ## Documentation
 
+- [docs/aws-architecture-diagram.md](docs/aws-architecture-diagram.md)
 - [docs/aws-target-architecture.md](docs/aws-target-architecture.md)
 - [docs/migration-decisions.md](docs/migration-decisions.md)
 - [docs/run-local.md](docs/run-local.md)
