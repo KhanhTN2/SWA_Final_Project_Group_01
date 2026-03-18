@@ -194,7 +194,7 @@ resource "aws_ecs_task_definition" "order" {
         { name = "APPCONFIG_ENABLED", value = "true" },
         { name = "APPCONFIG_BASE_URL", value = "http://localhost:2772" },
         { name = "APPCONFIG_RESOURCE_PATH", value = local.appconfig_path },
-        { name = "OTEL_EXPORTER_OTLP_ENDPOINT", value = "http://127.0.0.1:4317" }
+        { name = "OTEL_EXPORTER_OTLP_ENDPOINT", value = "http://127.0.0.1:4318/v1/traces" }
       ]
       secrets = [
         { name = "SPRING_DATASOURCE_USERNAME", valueFrom = aws_ssm_parameter.db_username.arn },
@@ -257,7 +257,7 @@ resource "aws_ecs_task_definition" "inventory" {
       environment = [
         { name = "SPRING_PROFILES_ACTIVE", value = "aws" },
         { name = "APP_INVENTORY_FAIL_MODE", value = "false" },
-        { name = "OTEL_EXPORTER_OTLP_ENDPOINT", value = "http://127.0.0.1:4317" }
+        { name = "OTEL_EXPORTER_OTLP_ENDPOINT", value = "http://127.0.0.1:4318/v1/traces" }
       ]
       logConfiguration = {
         logDriver = "awslogs"
@@ -317,7 +317,7 @@ resource "aws_ecs_task_definition" "notification" {
         { name = "SPRING_PROFILES_ACTIVE", value = "aws" },
         { name = "KAFKA_BOOTSTRAP_SERVERS", value = local.kafka_bootstrap },
         { name = "ORDER_CREATED_TOPIC", value = var.order_created_topic },
-        { name = "OTEL_EXPORTER_OTLP_ENDPOINT", value = "http://127.0.0.1:4317" }
+        { name = "OTEL_EXPORTER_OTLP_ENDPOINT", value = "http://127.0.0.1:4318/v1/traces" }
       ]
       logConfiguration = {
         logDriver = "awslogs"
@@ -339,6 +339,12 @@ resource "aws_ecs_service" "order" {
   task_definition = aws_ecs_task_definition.order.arn
   desired_count   = 1
   launch_type     = "FARGATE"
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.order.arn
+    container_name   = "order-service"
+    container_port   = 8080
+  }
 
   network_configuration {
     subnets          = values(aws_subnet.public)[*].id
@@ -365,6 +371,12 @@ resource "aws_ecs_service" "order" {
       }
     }
   }
+
+  health_check_grace_period_seconds = 180
+
+  depends_on = [
+    aws_lb_listener.order_http
+  ]
 
   tags = local.common_tags
 }

@@ -17,6 +17,8 @@ from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parents[1]
 TERRAFORM_DIR = ROOT / "infra" / "terraform"
+DEFAULT_DEMO_USERNAME = "demo-user"
+DEFAULT_DEMO_PASSWORD = "DemoPassw0rd!"
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -26,8 +28,16 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run the live AWS demo flow against the deployed stack.")
-    parser.add_argument("--username", default=os.environ.get("AWS_DEMO_USERNAME"), help="Cognito username")
-    parser.add_argument("--password", default=os.environ.get("AWS_DEMO_PASSWORD"), help="Cognito password")
+    parser.add_argument(
+        "--username",
+        default=os.environ.get("AWS_DEMO_USERNAME", DEFAULT_DEMO_USERNAME),
+        help="Cognito username",
+    )
+    parser.add_argument(
+        "--password",
+        default=os.environ.get("AWS_DEMO_PASSWORD", DEFAULT_DEMO_PASSWORD),
+        help="Cognito password",
+    )
     parser.add_argument("--product-number", default="PROD001", help="Product number to query and order")
     parser.add_argument("--quantity", type=int, default=2, help="Order quantity")
     parser.add_argument("--region", default=os.environ.get("AWS_DEFAULT_REGION", "us-east-2"), help="AWS region for the Cognito hosted UI")
@@ -153,9 +163,6 @@ def api_call(api_base_url, access_token, correlation_id, method, path, payload=N
 
 def main():
     args = parse_args()
-    if not args.username or not args.password:
-        print("Username and password are required. Pass --username/--password or set AWS_DEMO_USERNAME/AWS_DEMO_PASSWORD.", file=sys.stderr)
-        return 1
 
     outputs = terraform_outputs()
     redirect_uri = "https://example.com/callback"

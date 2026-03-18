@@ -15,7 +15,7 @@ The original backend was a two-service Spring Boot demo:
 
 The backend now targets a minimal AWS-native microservice design:
 
-- `order-service`: public application service behind Amazon API Gateway
+- `order-service`: public application service behind Amazon API Gateway and an internal Application Load Balancer
 - `inventory-service`: internal ECS service discovered through ECS Service Connect and AWS Cloud Map
 - `notification-service`: Kafka consumer for order-created events
 - Amazon ECS Fargate for runtime
@@ -58,9 +58,10 @@ The backend now targets a minimal AWS-native microservice design:
 
 1. Client calls API Gateway `POST /orders`
 2. API Gateway validates JWT from Cognito
-3. API Gateway forwards traffic privately to `order-service`
-4. `order-service` calls `inventory-service` through the ECS Service Connect name `inventory-service`
-5. `order-service` persists the order and returns the API response
+3. API Gateway forwards traffic privately to the internal ALB through VPC Link
+4. The ALB forwards traffic to the `order-service` ECS target group
+5. `order-service` calls `inventory-service` through the ECS Service Connect name `inventory-service`
+6. `order-service` persists the order and returns the API response
 
 ### Asynchronous flow
 
@@ -74,7 +75,7 @@ The backend now targets a minimal AWS-native microservice design:
 | Previous assumption | AWS target |
 | --- | --- |
 | direct container URL / stale Consul assumptions | ECS Service Connect + Cloud Map |
-| public ALB-only edge notes | API Gateway HTTP API |
+| public ALB-only edge notes | API Gateway HTTP API + internal ALB target group for ECS ingress |
 | no auth | Cognito + API Gateway JWT authorizer + Spring resource server |
 | local-only config | AppConfig + Parameter Store + Secrets Manager |
 | no tracing | OpenTelemetry -> CloudWatch agent OTLP receiver -> X-Ray |
@@ -95,5 +96,5 @@ The backend now targets a minimal AWS-native microservice design:
 - Deploy each service as an ECS Fargate service with Cloud Map registration and Service Connect enabled
 - Inject config via task environment, SSM parameters, and Secrets Manager
 - ECS task definitions include an AppConfig agent sidecar for `order-service` and a CloudWatch agent sidecar for OTLP-to-X-Ray export
-- Route public traffic through API Gateway to `order-service`
+- Route public traffic through API Gateway, then an internal ALB, to `order-service`
 - Keep `inventory-service` and `notification-service` private inside the VPC

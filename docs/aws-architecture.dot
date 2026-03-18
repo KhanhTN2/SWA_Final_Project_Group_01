@@ -1,0 +1,293 @@
+digraph aws_architecture {
+  graph [
+    rankdir=LR,
+    bgcolor="white",
+    pad="0.35",
+    nodesep="0.45",
+    ranksep="0.8",
+    splines=polyline,
+    fontname="Helvetica"
+  ];
+
+  node [
+    shape=box,
+    style="rounded,filled",
+    fontname="Helvetica",
+    fontsize=12,
+    margin="0.18,0.12",
+    color="#D5DBE3",
+    penwidth=1.2
+  ];
+
+  edge [
+    fontname="Helvetica",
+    fontsize=10,
+    color="#4A5568",
+    penwidth=1.4,
+    arrowsize=0.8
+  ];
+
+  client [
+    label=<
+      <B>Client / Demo Script</B><BR/>
+      Browser or Python helper
+    >,
+    fillcolor="#F8FAFC"
+  ];
+
+  developer [
+    label=<
+      <B>Developer / CI</B><BR/>
+      Build and deploy images
+    >,
+    fillcolor="#F8FAFC"
+  ];
+
+  subgraph cluster_region {
+    label=<
+      <B>AWS Region us-east-2</B>
+    >;
+    color="#D9DEE7";
+    penwidth=1.2;
+    style="rounded,filled";
+    fillcolor="#F4F6F9";
+
+    cognito [
+      label=<
+        <B>Amazon Cognito</B><BR/>
+        User Pool<BR/>
+        Hosted UI + JWT
+      >,
+      fillcolor="#D13212",
+      fontcolor="white",
+      color="#B4230A"
+    ];
+
+    apigw [
+      label=<
+        <B>Amazon API Gateway</B><BR/>
+        HTTP API<BR/>
+        JWT authorizer
+      >,
+      fillcolor="#7D3AC1",
+      fontcolor="white",
+      color="#61279A"
+    ];
+
+    appconfig [
+      label=<
+        <B>AWS AppConfig</B><BR/>
+        Runtime config
+      >,
+      fillcolor="#2EA597",
+      fontcolor="white",
+      color="#227E73"
+    ];
+
+    ssm [
+      label=<
+        <B>AWS Systems Manager</B><BR/>
+        Parameter Store
+      >,
+      fillcolor="#1F73B7",
+      fontcolor="white",
+      color="#175A91"
+    ];
+
+    secrets [
+      label=<
+        <B>AWS Secrets Manager</B><BR/>
+        DB password
+      >,
+      fillcolor="#DD6B10",
+      fontcolor="white",
+      color="#B25207"
+    ];
+
+    logs [
+      label=<
+        <B>Amazon CloudWatch Logs</B><BR/>
+        API + container logs
+      >,
+      fillcolor="#C925D1",
+      fontcolor="white",
+      color="#A41BAA"
+    ];
+
+    xray [
+      label=<
+        <B>AWS X-Ray</B><BR/>
+        Distributed tracing
+      >,
+      fillcolor="#7C4DFF",
+      fontcolor="white",
+      color="#6337D2"
+    ];
+
+    ecr [
+      label=<
+        <B>Amazon ECR</B><BR/>
+        Service images
+      >,
+      fillcolor="#2F6DB2",
+      fontcolor="white",
+      color="#24568C"
+    ];
+
+    subgraph cluster_vpc {
+      label=<
+        <B>Amazon VPC 10.42.0.0/16</B>
+      >;
+      color="#C7D0DC";
+      penwidth=1.2;
+      style="rounded,filled";
+      fillcolor="#FAFBFC";
+
+      subgraph cluster_private {
+        label=<
+          <B>Private Subnets</B><BR/>2 AZs
+        >;
+        color="#D8DEE8";
+        style="rounded,filled";
+        fillcolor="#EEF2F7";
+
+        vpclink [
+          label=<
+            <B>API Gateway VPC Link</B><BR/>
+            Private integration
+          >,
+          fillcolor="#7D3AC1",
+          fontcolor="white",
+          color="#61279A"
+        ];
+
+        alb [
+          label=<
+            <B>Internal ALB</B><BR/>
+            HTTP :80<BR/>
+            Target group to order-service
+          >,
+          fillcolor="#3B7CFF",
+          fontcolor="white",
+          color="#2C5FC9"
+        ];
+
+        cloudmap [
+          label=<
+            <B>AWS Cloud Map</B><BR/>
+            Service Connect DNS
+          >,
+          fillcolor="#2E73B8",
+          fontcolor="white",
+          color="#23598E"
+        ];
+
+        rds [
+          label=<
+            <B>Amazon RDS PostgreSQL</B><BR/>
+            Orders data
+          >,
+          fillcolor="#4B67D1",
+          fontcolor="white",
+          color="#394FB0"
+        ];
+
+        msk [
+          label=<
+            <B>Amazon MSK Serverless</B><BR/>
+            Kafka topic orders.created
+          >,
+          fillcolor="#E67E22",
+          fontcolor="white",
+          color="#C46614"
+        ];
+      }
+
+      subgraph cluster_public {
+        label=<
+          <B>Public Subnets</B><BR/>2 AZs
+        >;
+        color="#D8DEE8";
+        style="rounded,filled";
+        fillcolor="#F7F9FC";
+
+        ecs [
+          label=<
+            <B>Amazon ECS Fargate</B><BR/>
+            Cluster + Service Connect
+          >,
+          fillcolor="#FF9900",
+          fontcolor="white",
+          color="#D27A00"
+        ];
+
+        order [
+          label=<
+            <B>order-service</B><BR/>
+            Public API<BR/>
+            AppConfig + CW agent sidecars
+          >,
+          fillcolor="#2F6DB2",
+          fontcolor="white",
+          color="#24568C"
+        ];
+
+        inventory [
+          label=<
+            <B>inventory-service</B><BR/>
+            Internal stock + reservation
+          >,
+          fillcolor="#2F6DB2",
+          fontcolor="white",
+          color="#24568C"
+        ];
+
+        notification [
+          label=<
+            <B>notification-service</B><BR/>
+            Kafka consumer
+          >,
+          fillcolor="#2F6DB2",
+          fontcolor="white",
+          color="#24568C"
+        ];
+      }
+    }
+  }
+
+  client -> cognito [label="1. Sign in"];
+  client -> apigw [label="2. Call orders/product API"];
+  cognito -> apigw [label="JWT validation"];
+  apigw -> vpclink [label="Private route"];
+  vpclink -> alb [label="Private route"];
+  alb -> order [label="Forward to target group"];
+
+  ecs -> order [style=dashed, color="#94A3B8", fontcolor="#64748B", constraint=false];
+  ecs -> inventory [style=dashed, color="#94A3B8", fontcolor="#64748B", constraint=false];
+  ecs -> notification [style=dashed, color="#94A3B8", fontcolor="#64748B", constraint=false];
+
+  order -> inventory [label="3. Sync HTTP inventory check"];
+  order -> rds [label="4. Persist order"];
+  order -> msk [label="5. Publish event"];
+  notification -> msk [label="6. Consume event", dir=back];
+
+  order -> appconfig [label="Runtime config", style=dashed, color="#94A3B8", fontcolor="#64748B", constraint=false];
+  order -> ssm [label="Params", style=dashed, color="#94A3B8", fontcolor="#64748B", constraint=false];
+  inventory -> ssm [label="Agent config", style=dashed, color="#94A3B8", fontcolor="#64748B", constraint=false];
+  notification -> ssm [label="Topic + agent config", style=dashed, color="#94A3B8", fontcolor="#64748B", constraint=false];
+  order -> secrets [label="DB secret", style=dashed, color="#94A3B8", fontcolor="#64748B", constraint=false];
+
+  apigw -> logs [label="Access logs", style=dashed, color="#94A3B8", fontcolor="#64748B", constraint=false];
+  order -> logs [label="App logs", style=dashed, color="#94A3B8", fontcolor="#64748B", constraint=false];
+  inventory -> logs [label="App logs", style=dashed, color="#94A3B8", fontcolor="#64748B", constraint=false];
+  notification -> logs [label="App logs", style=dashed, color="#94A3B8", fontcolor="#64748B", constraint=false];
+
+  order -> xray [label="Traces", style=dashed, color="#94A3B8", fontcolor="#64748B", constraint=false];
+  inventory -> xray [label="Traces", style=dashed, color="#94A3B8", fontcolor="#64748B", constraint=false];
+  notification -> xray [label="Traces", style=dashed, color="#94A3B8", fontcolor="#64748B", constraint=false];
+
+  developer -> ecr [label="Push images", style=dashed, color="#94A3B8", fontcolor="#64748B", constraint=false];
+  ecr -> order [style=dashed, color="#94A3B8", fontcolor="#64748B", constraint=false];
+  ecr -> inventory [style=dashed, color="#94A3B8", fontcolor="#64748B", constraint=false];
+  ecr -> notification [style=dashed, color="#94A3B8", fontcolor="#64748B", constraint=false];
+}

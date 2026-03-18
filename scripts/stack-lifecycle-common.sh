@@ -9,6 +9,10 @@ PROJECT_NAME="${PROJECT_NAME:-aws-modernized-demo}"
 
 SERVICES=("order-service" "inventory-service" "notification-service")
 
+if [[ -z "${AWS_PROFILE:-}" && -n "${WS_PROFILE:-}" ]]; then
+  export AWS_PROFILE="$WS_PROFILE"
+fi
+
 log() {
   printf '%s\n' "$*" >&2
 }
@@ -137,6 +141,34 @@ is_valid_image_ref() {
   return 0
 }
 
+image_ref_exists() {
+  local value="$1"
+  local rest repo digest tag
+
+  if [[ "$value" != *.amazonaws.com/* ]]; then
+    return 0
+  fi
+
+  rest="${value#*.amazonaws.com/}"
+
+  if [[ "$rest" == *"@sha256:"* ]]; then
+    repo="${rest%@*}"
+    digest="${rest#*@}"
+    aws_cli ecr describe-images \
+      --repository-name "$repo" \
+      --image-ids "imageDigest=$digest" \
+      >/dev/null 2>&1
+    return $?
+  fi
+
+  repo="${rest%:*}"
+  tag="${rest##*:}"
+  aws_cli ecr describe-images \
+    --repository-name "$repo" \
+    --image-ids "imageTag=$tag" \
+    >/dev/null 2>&1
+}
+
 resolve_image() {
   local env_name="$1"
   local output_name="$2"
@@ -144,25 +176,25 @@ resolve_image() {
   local container_name="$4"
   local value=""
 
-  if is_valid_image_ref "${!env_name:-}"; then
+  if is_valid_image_ref "${!env_name:-}" && image_ref_exists "${!env_name:-}"; then
     printf '%s\n' "${!env_name}"
     return 0
   fi
 
   load_image_env_file
-  if is_valid_image_ref "${!env_name:-}"; then
+  if is_valid_image_ref "${!env_name:-}" && image_ref_exists "${!env_name:-}"; then
     printf '%s\n' "${!env_name}"
     return 0
   fi
 
   value="$(terraform_output_raw "$output_name")"
-  if is_valid_image_ref "$value"; then
+  if is_valid_image_ref "$value" && image_ref_exists "$value"; then
     printf '%s\n' "$value"
     return 0
   fi
 
   value="$(backup_task_image "$task_name" "$container_name" || true)"
-  if is_valid_image_ref "$value"; then
+  if is_valid_image_ref "$value" && image_ref_exists "$value"; then
     printf '%s\n' "$value"
     return 0
   fi
@@ -190,6 +222,42 @@ export NOTIFICATION_SERVICE_IMAGE='$notification_image'
 EOF
 
   log "Saved image variables to $IMAGE_ENV_FILE"
+}
+
+purge_secret_if_scheduled_for_deletion() {
+  local secret_name="$1"
+  local deleted_date=""
+  local attempt
+
+  deleted_date="$(aws_cli secretsmanager describe-secret \
+    --secret-id "$secret_name" \
+    --query 'DeletedDate' \
+    --output text 2>/dev/null || true)"
+
+  if [[ -z "$deleted_date" || "$deleted_date" == "None" ]]; then
+    return 0
+  fi
+
+  log "Secret $secret_name is scheduled for deletion. Restoring and force deleting it to release the name."
+
+  aws_cli secretsmanager restore-secret \
+    --secret-id "$secret_name" \
+    >/dev/null 2>&1 || true
+
+  aws_cli secretsmanager delete-secret \
+    --secret-id "$secret_name" \
+    --force-delete-without-recovery \
+    >/dev/null
+
+  for attempt in $(seq 1 30); do
+    if ! aws_cli secretsmanager describe-secret --secret-id "$secret_name" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 2
+  done
+
+  log "Secret $secret_name still exists after force delete."
+  return 1
 }
 
 resolve_cluster_name() {

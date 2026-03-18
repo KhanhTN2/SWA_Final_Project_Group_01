@@ -10,6 +10,8 @@ Show the AWS-targeted architecture in one short session:
 - asynchronous Kafka publish and consume through MSK Serverless
 - circuit-breaker fallback behavior when `inventory-service` is unavailable
 
+Postman equivalents for the demo flows live in [`docs/postman-demos.md`](./postman-demos.md).
+
 ## Pre-Demo Checklist
 
 Export the common shell variables first:

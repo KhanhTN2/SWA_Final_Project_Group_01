@@ -1,0 +1,172 @@
+digraph aws_architecture_static {
+  graph [
+    rankdir=LR,
+    bgcolor="white",
+    pad="0.4",
+    nodesep="0.6",
+    ranksep="0.9",
+    splines=polyline,
+    fontname="Helvetica"
+  ];
+
+  node [
+    shape=box,
+    style="rounded,filled",
+    fontname="Helvetica",
+    fontsize=13,
+    margin="0.2,0.14",
+    color="#D5DBE3",
+    penwidth=1.2
+  ];
+
+  edge [
+    fontname="Helvetica",
+    fontsize=11,
+    color="#4A5568",
+    penwidth=1.6,
+    arrowsize=0.8
+  ];
+
+  client [
+    label=<
+      <B>Client</B><BR/>
+      Browser / Demo App
+    >,
+    fillcolor="#F8FAFC"
+  ];
+
+  subgraph cluster_aws {
+    label=<
+      <B>AWS Region us-east-2</B>
+    >;
+    style="rounded,filled";
+    fillcolor="#F4F6F9";
+    color="#D9DEE7";
+
+    cognito [
+      label=<
+        <B>Amazon Cognito</B><BR/>
+        Authentication
+      >,
+      fillcolor="#D13212",
+      fontcolor="white",
+      color="#B4230A"
+    ];
+
+    apigw [
+      label=<
+        <B>Amazon API Gateway</B><BR/>
+        Public HTTP API
+      >,
+      fillcolor="#7D3AC1",
+      fontcolor="white",
+      color="#61279A"
+    ];
+
+    alb [
+      label=<
+        <B>Internal ALB</B><BR/>
+        Listener :80<BR/>
+        Target group to order-service
+      >,
+      fillcolor="#3B7CFF",
+      fontcolor="white",
+      color="#2C5FC9"
+    ];
+
+    subgraph cluster_vpc {
+      label=<
+        <B>Amazon VPC</B>
+      >;
+      style="rounded,filled";
+      fillcolor="#FAFBFC";
+      color="#C7D0DC";
+
+      ecs [
+        label=<
+          <B>Amazon ECS Fargate</B><BR/>
+          Application runtime
+        >,
+        fillcolor="#FF9900",
+        fontcolor="white",
+        color="#D27A00"
+      ];
+
+      order [
+        label=<
+          <B>order-service</B><BR/>
+          Public business API
+        >,
+        fillcolor="#2F6DB2",
+        fontcolor="white",
+        color="#24568C"
+      ];
+
+      inventory [
+        label=<
+          <B>inventory-service</B><BR/>
+          Internal stock service
+        >,
+        fillcolor="#2F6DB2",
+        fontcolor="white",
+        color="#24568C"
+      ];
+
+      notification [
+        label=<
+          <B>notification-service</B><BR/>
+          Async consumer
+        >,
+        fillcolor="#2F6DB2",
+        fontcolor="white",
+        color="#24568C"
+      ];
+
+      rds [
+        label=<
+          <B>Amazon RDS PostgreSQL</B><BR/>
+          Orders database
+        >,
+        fillcolor="#4B67D1",
+        fontcolor="white",
+        color="#394FB0"
+      ];
+
+      msk [
+        label=<
+          <B>Amazon MSK Serverless</B><BR/>
+          Order events
+        >,
+        fillcolor="#E67E22",
+        fontcolor="white",
+        color="#C46614"
+      ];
+
+      logs [
+        label=<
+          <B>Amazon CloudWatch Logs</B><BR/>
+          Centralized logging
+        >,
+        fillcolor="#C925D1",
+        fontcolor="white",
+        color="#A41BAA"
+      ];
+    }
+  }
+
+  client -> cognito [label="Sign in"];
+  client -> apigw [label="API requests"];
+  cognito -> apigw [label="JWT"];
+  apigw -> alb [label="Private route"];
+  alb -> order [label="Forward traffic"];
+  ecs -> order [style=dashed, color="#94A3B8", constraint=false];
+  ecs -> inventory [style=dashed, color="#94A3B8", constraint=false];
+  ecs -> notification [style=dashed, color="#94A3B8", constraint=false];
+  order -> inventory [label="Sync REST call"];
+  order -> rds [label="Read / write"];
+  order -> msk [label="Publish event"];
+  msk -> notification [label="Consume event"];
+  order -> logs [label="Logs", style=dashed, color="#94A3B8", fontcolor="#64748B", constraint=false];
+  inventory -> logs [label="Logs", style=dashed, color="#94A3B8", fontcolor="#64748B", constraint=false];
+  notification -> logs [label="Logs", style=dashed, color="#94A3B8", fontcolor="#64748B", constraint=false];
+}

@@ -163,7 +163,7 @@ Set these values through Terraform variables, SSM, or Secrets Manager:
 The ECS task definitions now include:
 
 - AWS AppConfig agent on `localhost:2772` for `order-service`
-- CloudWatch agent on `localhost:4317` as an OTLP receiver that forwards traces to X-Ray
+- CloudWatch agent on `localhost:4318/v1/traces` for OTLP/HTTP trace export, with `4317` also available for OTLP/gRPC
 
 After deployment, verify both sidecars are healthy in the ECS task view before exercising the demo.
 

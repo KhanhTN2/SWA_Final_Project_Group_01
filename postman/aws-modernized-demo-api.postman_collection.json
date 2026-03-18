@@ -1,0 +1,576 @@
+{
+  "info": {
+    "_postman_id": "ed9f4483-3cb7-480f-a62e-3009fd83b4fa",
+    "name": "AWS Modernized Demo API",
+    "description": "API requests for Demo 1 happy path, Demo 2 failover, and Demo 3 circuit-breaker flows. Set {{access_token}} in the imported environment before running folders.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Demo 1 - Happy Path",
+      "item": [
+        {
+          "name": "GET Product",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Demo 1 product check is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "if (body.numberOnStock !== undefined) {",
+                  "  pm.environment.set('demo1_last_stock', String(body.numberOnStock));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{demo1_correlation_id}}"
+              }
+            ],
+            "url": "{{api_gateway_endpoint}}/product/{{product_number}}",
+            "description": "Matches Demo 1 product check in docs/demo-scenario.md."
+          }
+        },
+        {
+          "name": "POST Create Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Demo 1 order create is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.environment.set('demo1_order_id', body.orderId || '');",
+                  "pm.environment.set('demo1_order_status', body.status || '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{demo1_correlation_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productNumber\": \"{{product_number}}\",\n  \"quantity\": {{quantity}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{api_gateway_endpoint}}/orders"
+          }
+        },
+        {
+          "name": "GET Order Lookup",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Demo 1 order lookup is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{demo1_correlation_id}}"
+              }
+            ],
+            "url": "{{api_gateway_endpoint}}/orders/{{demo1_order_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Demo 2 - Inventory Failover",
+      "item": [
+        {
+          "name": "GET Product After Failover",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Demo 2 product check is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{demo2_correlation_id}}"
+              }
+            ],
+            "url": "{{api_gateway_endpoint}}/product/{{product_number}}"
+          }
+        },
+        {
+          "name": "POST Create Order After Failover",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Demo 2 order create is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.environment.set('demo2_order_id', body.orderId || '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{demo2_correlation_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productNumber\": \"{{product_number}}\",\n  \"quantity\": {{quantity}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{api_gateway_endpoint}}/orders"
+          }
+        },
+        {
+          "name": "GET Order Lookup After Failover",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Demo 2 order lookup is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{demo2_correlation_id}}"
+              }
+            ],
+            "url": "{{api_gateway_endpoint}}/orders/{{demo2_order_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Demo 3 - Circuit Breaker Open",
+      "item": [
+        {
+          "name": "POST Create Order 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Demo 3 open call 1 returns 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{demo3_cb_open_1_correlation_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productNumber\": \"{{product_number}}\",\n  \"quantity\": {{quantity}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{api_gateway_endpoint}}/orders",
+            "description": "Run after inventory-service has been scaled to zero in the ops collection."
+          }
+        },
+        {
+          "name": "POST Create Order 2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Demo 3 open call 2 returns 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{demo3_cb_open_2_correlation_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productNumber\": \"{{product_number}}\",\n  \"quantity\": {{quantity}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{api_gateway_endpoint}}/orders"
+          }
+        },
+        {
+          "name": "POST Create Order 3",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Demo 3 open call 3 returns 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{demo3_cb_open_3_correlation_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productNumber\": \"{{product_number}}\",\n  \"quantity\": {{quantity}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{api_gateway_endpoint}}/orders"
+          }
+        },
+        {
+          "name": "POST Create Order 4",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Demo 3 open call 4 returns 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{demo3_cb_open_4_correlation_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productNumber\": \"{{product_number}}\",\n  \"quantity\": {{quantity}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{api_gateway_endpoint}}/orders"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Demo 3 - Circuit Breaker Recovery",
+      "item": [
+        {
+          "name": "GET Product Recovery 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Demo 3 recovery product 1 is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{demo3_recover_1_correlation_id}}"
+              }
+            ],
+            "url": "{{api_gateway_endpoint}}/product/{{product_number}}",
+            "description": "Run after inventory-service has been restored and after a manual 12 second wait, matching the docs."
+          }
+        },
+        {
+          "name": "POST Create Order Recovery 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Demo 3 recovery order 1 is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.environment.set('demo3_recover_1_order_id', body.orderId || '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{demo3_recover_1_correlation_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productNumber\": \"{{product_number}}\",\n  \"quantity\": {{quantity}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{api_gateway_endpoint}}/orders"
+          }
+        },
+        {
+          "name": "GET Order Lookup Recovery 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Demo 3 recovery lookup 1 is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{demo3_recover_1_correlation_id}}"
+              }
+            ],
+            "url": "{{api_gateway_endpoint}}/orders/{{demo3_recover_1_order_id}}"
+          }
+        },
+        {
+          "name": "GET Product Recovery 2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Demo 3 recovery product 2 is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{demo3_recover_2_correlation_id}}"
+              }
+            ],
+            "url": "{{api_gateway_endpoint}}/product/{{product_number}}"
+          }
+        },
+        {
+          "name": "POST Create Order Recovery 2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Demo 3 recovery order 2 is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.environment.set('demo3_recover_2_order_id', body.orderId || '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{demo3_recover_2_correlation_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productNumber\": \"{{product_number}}\",\n  \"quantity\": {{quantity}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{api_gateway_endpoint}}/orders"
+          }
+        },
+        {
+          "name": "GET Order Lookup Recovery 2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Demo 3 recovery lookup 2 is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Correlation-Id",
+                "value": "{{demo3_recover_2_correlation_id}}"
+              }
+            ],
+            "url": "{{api_gateway_endpoint}}/orders/{{demo3_recover_2_order_id}}"
+          }
+        }
+      ]
+    }
+  ]
+}

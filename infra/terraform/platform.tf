@@ -84,8 +84,9 @@ resource "random_password" "db_password" {
 }
 
 resource "aws_secretsmanager_secret" "db_password" {
-  name = "${local.name_prefix}/db/password"
-  tags = local.common_tags
+  name                    = "${local.name_prefix}/db/password"
+  recovery_window_in_days = 0
+  tags                    = local.common_tags
 }
 
 resource "aws_secretsmanager_secret_version" "db_password" {
@@ -268,7 +269,7 @@ resource "aws_db_subnet_group" "order" {
 resource "aws_db_instance" "order" {
   identifier              = "${local.name_prefix}-postgres"
   engine                  = "postgres"
-  engine_version          = "16.3"
+  engine_version          = "16"
   instance_class          = "db.t3.micro"
   allocated_storage       = 20
   max_allocated_storage   = 100
@@ -281,6 +282,7 @@ resource "aws_db_instance" "order" {
   skip_final_snapshot     = true
   backup_retention_period = 0
   multi_az                = false
+  auto_minor_version_upgrade = true
   storage_encrypted       = true
   tags                    = local.common_tags
 }

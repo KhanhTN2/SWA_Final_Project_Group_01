@@ -3,6 +3,16 @@ output "api_gateway_endpoint" {
   value       = aws_apigatewayv2_api.http.api_endpoint
 }
 
+output "order_alb_dns_name" {
+  description = "DNS name of the internal ALB fronting order-service"
+  value       = aws_lb.order.dns_name
+}
+
+output "order_target_group_arn" {
+  description = "Target group ARN used by order-service"
+  value       = aws_lb_target_group.order.arn
+}
+
 output "order_service_image" {
   description = "Container image URI currently used for order-service"
   value       = var.order_service_image

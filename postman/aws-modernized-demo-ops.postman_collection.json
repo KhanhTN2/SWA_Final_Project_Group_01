@@ -1,0 +1,780 @@
+{
+  "info": {
+    "_postman_id": "75c0f8bf-04f0-4064-81da-f379c53979cb",
+    "name": "AWS Modernized Demo Ops",
+    "description": "AWS control-plane and log requests for the demo scenarios. Fill in AWS credential variables in the imported environment before using these requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Setup And Visibility",
+      "item": [
+        {
+          "name": "Describe ECS Services",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Describe services is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "awsv4",
+              "awsv4": [
+                {
+                  "key": "accessKey",
+                  "value": "{{aws_access_key_id}}",
+                  "type": "string"
+                },
+                {
+                  "key": "secretKey",
+                  "value": "{{aws_secret_access_key}}",
+                  "type": "string"
+                },
+                {
+                  "key": "sessionToken",
+                  "value": "{{aws_session_token}}",
+                  "type": "string"
+                },
+                {
+                  "key": "region",
+                  "value": "{{aws_region}}",
+                  "type": "string"
+                },
+                {
+                  "key": "service",
+                  "value": "ecs",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-amz-json-1.1"
+              },
+              {
+                "key": "X-Amz-Target",
+                "value": "AmazonEC2ContainerServiceV20141113.DescribeServices"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cluster\": \"{{ecs_cluster_name}}\",\n  \"services\": [\n    \"{{order_service_name}}\",\n    \"{{inventory_service_name}}\",\n    \"{{notification_service_name}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "https://ecs.{{aws_region}}.amazonaws.com/"
+          }
+        },
+        {
+          "name": "Order Logs By Demo 1 Correlation",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('logs_since_ms', String(Date.now() - (5 * 60 * 1000)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "awsv4",
+              "awsv4": [
+                {
+                  "key": "accessKey",
+                  "value": "{{aws_access_key_id}}",
+                  "type": "string"
+                },
+                {
+                  "key": "secretKey",
+                  "value": "{{aws_secret_access_key}}",
+                  "type": "string"
+                },
+                {
+                  "key": "sessionToken",
+                  "value": "{{aws_session_token}}",
+                  "type": "string"
+                },
+                {
+                  "key": "region",
+                  "value": "{{aws_region}}",
+                  "type": "string"
+                },
+                {
+                  "key": "service",
+                  "value": "logs",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-amz-json-1.1"
+              },
+              {
+                "key": "X-Amz-Target",
+                "value": "Logs_20140328.FilterLogEvents"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"logGroupName\": \"{{order_log_group}}\",\n  \"startTime\": {{logs_since_ms}},\n  \"filterPattern\": \"\\\"{{demo1_correlation_id}}\\\"\",\n  \"limit\": 50\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "https://logs.{{aws_region}}.amazonaws.com/"
+          }
+        },
+        {
+          "name": "Notification Logs By Demo 1 Correlation",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('logs_since_ms', String(Date.now() - (5 * 60 * 1000)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "awsv4",
+              "awsv4": [
+                {
+                  "key": "accessKey",
+                  "value": "{{aws_access_key_id}}",
+                  "type": "string"
+                },
+                {
+                  "key": "secretKey",
+                  "value": "{{aws_secret_access_key}}",
+                  "type": "string"
+                },
+                {
+                  "key": "sessionToken",
+                  "value": "{{aws_session_token}}",
+                  "type": "string"
+                },
+                {
+                  "key": "region",
+                  "value": "{{aws_region}}",
+                  "type": "string"
+                },
+                {
+                  "key": "service",
+                  "value": "logs",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-amz-json-1.1"
+              },
+              {
+                "key": "X-Amz-Target",
+                "value": "Logs_20140328.FilterLogEvents"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"logGroupName\": \"{{notification_log_group}}\",\n  \"startTime\": {{logs_since_ms}},\n  \"filterPattern\": \"\\\"{{demo1_correlation_id}}\\\"\",\n  \"limit\": 50\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "https://logs.{{aws_region}}.amazonaws.com/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Demo 2 - Failover Prep",
+      "item": [
+        {
+          "name": "Scale Inventory To 2",
+          "request": {
+            "auth": {
+              "type": "awsv4",
+              "awsv4": [
+                {
+                  "key": "accessKey",
+                  "value": "{{aws_access_key_id}}",
+                  "type": "string"
+                },
+                {
+                  "key": "secretKey",
+                  "value": "{{aws_secret_access_key}}",
+                  "type": "string"
+                },
+                {
+                  "key": "sessionToken",
+                  "value": "{{aws_session_token}}",
+                  "type": "string"
+                },
+                {
+                  "key": "region",
+                  "value": "{{aws_region}}",
+                  "type": "string"
+                },
+                {
+                  "key": "service",
+                  "value": "ecs",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-amz-json-1.1"
+              },
+              {
+                "key": "X-Amz-Target",
+                "value": "AmazonEC2ContainerServiceV20141113.UpdateService"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cluster\": \"{{ecs_cluster_name}}\",\n  \"service\": \"{{inventory_service_name}}\",\n  \"desiredCount\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "https://ecs.{{aws_region}}.amazonaws.com/"
+          }
+        },
+        {
+          "name": "List Inventory Tasks",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.taskArns && body.taskArns.length > 0) {",
+                  "  pm.environment.set('inventory_task_to_stop', body.taskArns[0]);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "awsv4",
+              "awsv4": [
+                {
+                  "key": "accessKey",
+                  "value": "{{aws_access_key_id}}",
+                  "type": "string"
+                },
+                {
+                  "key": "secretKey",
+                  "value": "{{aws_secret_access_key}}",
+                  "type": "string"
+                },
+                {
+                  "key": "sessionToken",
+                  "value": "{{aws_session_token}}",
+                  "type": "string"
+                },
+                {
+                  "key": "region",
+                  "value": "{{aws_region}}",
+                  "type": "string"
+                },
+                {
+                  "key": "service",
+                  "value": "ecs",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-amz-json-1.1"
+              },
+              {
+                "key": "X-Amz-Target",
+                "value": "AmazonEC2ContainerServiceV20141113.ListTasks"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cluster\": \"{{ecs_cluster_name}}\",\n  \"serviceName\": \"{{inventory_service_name}}\",\n  \"desiredStatus\": \"RUNNING\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "https://ecs.{{aws_region}}.amazonaws.com/"
+          }
+        },
+        {
+          "name": "Stop Captured Inventory Task",
+          "request": {
+            "auth": {
+              "type": "awsv4",
+              "awsv4": [
+                {
+                  "key": "accessKey",
+                  "value": "{{aws_access_key_id}}",
+                  "type": "string"
+                },
+                {
+                  "key": "secretKey",
+                  "value": "{{aws_secret_access_key}}",
+                  "type": "string"
+                },
+                {
+                  "key": "sessionToken",
+                  "value": "{{aws_session_token}}",
+                  "type": "string"
+                },
+                {
+                  "key": "region",
+                  "value": "{{aws_region}}",
+                  "type": "string"
+                },
+                {
+                  "key": "service",
+                  "value": "ecs",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-amz-json-1.1"
+              },
+              {
+                "key": "X-Amz-Target",
+                "value": "AmazonEC2ContainerServiceV20141113.StopTask"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cluster\": \"{{ecs_cluster_name}}\",\n  \"task\": \"{{inventory_task_to_stop}}\",\n  \"reason\": \"demo one inventory replica stopped\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "https://ecs.{{aws_region}}.amazonaws.com/"
+          }
+        },
+        {
+          "name": "Order Logs By Demo 2 Correlation",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('logs_since_ms', String(Date.now() - (5 * 60 * 1000)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "awsv4",
+              "awsv4": [
+                {
+                  "key": "accessKey",
+                  "value": "{{aws_access_key_id}}",
+                  "type": "string"
+                },
+                {
+                  "key": "secretKey",
+                  "value": "{{aws_secret_access_key}}",
+                  "type": "string"
+                },
+                {
+                  "key": "sessionToken",
+                  "value": "{{aws_session_token}}",
+                  "type": "string"
+                },
+                {
+                  "key": "region",
+                  "value": "{{aws_region}}",
+                  "type": "string"
+                },
+                {
+                  "key": "service",
+                  "value": "logs",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-amz-json-1.1"
+              },
+              {
+                "key": "X-Amz-Target",
+                "value": "Logs_20140328.FilterLogEvents"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"logGroupName\": \"{{order_log_group}}\",\n  \"startTime\": {{logs_since_ms}},\n  \"filterPattern\": \"\\\"{{demo2_correlation_id}}\\\"\",\n  \"limit\": 50\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "https://logs.{{aws_region}}.amazonaws.com/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Demo 3 - Breaker Open And Recovery",
+      "item": [
+        {
+          "name": "Scale Inventory To 0",
+          "request": {
+            "auth": {
+              "type": "awsv4",
+              "awsv4": [
+                {
+                  "key": "accessKey",
+                  "value": "{{aws_access_key_id}}",
+                  "type": "string"
+                },
+                {
+                  "key": "secretKey",
+                  "value": "{{aws_secret_access_key}}",
+                  "type": "string"
+                },
+                {
+                  "key": "sessionToken",
+                  "value": "{{aws_session_token}}",
+                  "type": "string"
+                },
+                {
+                  "key": "region",
+                  "value": "{{aws_region}}",
+                  "type": "string"
+                },
+                {
+                  "key": "service",
+                  "value": "ecs",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-amz-json-1.1"
+              },
+              {
+                "key": "X-Amz-Target",
+                "value": "AmazonEC2ContainerServiceV20141113.UpdateService"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cluster\": \"{{ecs_cluster_name}}\",\n  \"service\": \"{{inventory_service_name}}\",\n  \"desiredCount\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "https://ecs.{{aws_region}}.amazonaws.com/"
+          }
+        },
+        {
+          "name": "Order Logs - Breaker Events",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('logs_since_ms', String(Date.now() - (5 * 60 * 1000)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "awsv4",
+              "awsv4": [
+                {
+                  "key": "accessKey",
+                  "value": "{{aws_access_key_id}}",
+                  "type": "string"
+                },
+                {
+                  "key": "secretKey",
+                  "value": "{{aws_secret_access_key}}",
+                  "type": "string"
+                },
+                {
+                  "key": "sessionToken",
+                  "value": "{{aws_session_token}}",
+                  "type": "string"
+                },
+                {
+                  "key": "region",
+                  "value": "{{aws_region}}",
+                  "type": "string"
+                },
+                {
+                  "key": "service",
+                  "value": "logs",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-amz-json-1.1"
+              },
+              {
+                "key": "X-Amz-Target",
+                "value": "Logs_20140328.FilterLogEvents"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"logGroupName\": \"{{order_log_group}}\",\n  \"startTime\": {{logs_since_ms}},\n  \"filterPattern\": \"\\\"Circuit breaker inventoryService\\\"\",\n  \"limit\": 50\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "https://logs.{{aws_region}}.amazonaws.com/"
+          }
+        },
+        {
+          "name": "Notification Logs - Notification Processed",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('logs_since_ms', String(Date.now() - (5 * 60 * 1000)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "awsv4",
+              "awsv4": [
+                {
+                  "key": "accessKey",
+                  "value": "{{aws_access_key_id}}",
+                  "type": "string"
+                },
+                {
+                  "key": "secretKey",
+                  "value": "{{aws_secret_access_key}}",
+                  "type": "string"
+                },
+                {
+                  "key": "sessionToken",
+                  "value": "{{aws_session_token}}",
+                  "type": "string"
+                },
+                {
+                  "key": "region",
+                  "value": "{{aws_region}}",
+                  "type": "string"
+                },
+                {
+                  "key": "service",
+                  "value": "logs",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-amz-json-1.1"
+              },
+              {
+                "key": "X-Amz-Target",
+                "value": "Logs_20140328.FilterLogEvents"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"logGroupName\": \"{{notification_log_group}}\",\n  \"startTime\": {{logs_since_ms}},\n  \"filterPattern\": \"\\\"Notification processed\\\"\",\n  \"limit\": 50\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "https://logs.{{aws_region}}.amazonaws.com/"
+          }
+        },
+        {
+          "name": "Scale Inventory Back To 2",
+          "request": {
+            "auth": {
+              "type": "awsv4",
+              "awsv4": [
+                {
+                  "key": "accessKey",
+                  "value": "{{aws_access_key_id}}",
+                  "type": "string"
+                },
+                {
+                  "key": "secretKey",
+                  "value": "{{aws_secret_access_key}}",
+                  "type": "string"
+                },
+                {
+                  "key": "sessionToken",
+                  "value": "{{aws_session_token}}",
+                  "type": "string"
+                },
+                {
+                  "key": "region",
+                  "value": "{{aws_region}}",
+                  "type": "string"
+                },
+                {
+                  "key": "service",
+                  "value": "ecs",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-amz-json-1.1"
+              },
+              {
+                "key": "X-Amz-Target",
+                "value": "AmazonEC2ContainerServiceV20141113.UpdateService"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cluster\": \"{{ecs_cluster_name}}\",\n  \"service\": \"{{inventory_service_name}}\",\n  \"desiredCount\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "https://ecs.{{aws_region}}.amazonaws.com/",
+            "description": "After this request, wait roughly 12 seconds before running the recovery API folder, matching the docs."
+          }
+        },
+        {
+          "name": "Scale Inventory Back To 1",
+          "request": {
+            "auth": {
+              "type": "awsv4",
+              "awsv4": [
+                {
+                  "key": "accessKey",
+                  "value": "{{aws_access_key_id}}",
+                  "type": "string"
+                },
+                {
+                  "key": "secretKey",
+                  "value": "{{aws_secret_access_key}}",
+                  "type": "string"
+                },
+                {
+                  "key": "sessionToken",
+                  "value": "{{aws_session_token}}",
+                  "type": "string"
+                },
+                {
+                  "key": "region",
+                  "value": "{{aws_region}}",
+                  "type": "string"
+                },
+                {
+                  "key": "service",
+                  "value": "ecs",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-amz-json-1.1"
+              },
+              {
+                "key": "X-Amz-Target",
+                "value": "AmazonEC2ContainerServiceV20141113.UpdateService"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cluster\": \"{{ecs_cluster_name}}\",\n  \"service\": \"{{inventory_service_name}}\",\n  \"desiredCount\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "https://ecs.{{aws_region}}.amazonaws.com/"
+          }
+        }
+      ]
+    }
+  ]
+}

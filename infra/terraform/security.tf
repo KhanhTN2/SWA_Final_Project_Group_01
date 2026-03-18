@@ -26,16 +26,32 @@ resource "aws_security_group" "apigw_vpc_link" {
   tags        = local.common_tags
 }
 
-resource "aws_vpc_security_group_ingress_rule" "order_from_apigw" {
-  security_group_id            = aws_security_group.ecs_tasks.id
+resource "aws_vpc_security_group_ingress_rule" "alb_from_apigw" {
+  security_group_id            = aws_security_group.alb.id
   referenced_security_group_id = aws_security_group.apigw_vpc_link.id
-  from_port                    = 8080
-  to_port                      = 8080
+  from_port                    = 80
+  to_port                      = 80
   ip_protocol                  = "tcp"
 }
 
 resource "aws_vpc_security_group_egress_rule" "apigw_outbound" {
   security_group_id            = aws_security_group.apigw_vpc_link.id
+  referenced_security_group_id = aws_security_group.alb.id
+  from_port                    = 80
+  to_port                      = 80
+  ip_protocol                  = "tcp"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "order_from_alb" {
+  security_group_id            = aws_security_group.ecs_tasks.id
+  referenced_security_group_id = aws_security_group.alb.id
+  from_port                    = 8080
+  to_port                      = 8080
+  ip_protocol                  = "tcp"
+}
+
+resource "aws_vpc_security_group_egress_rule" "alb_to_ecs" {
+  security_group_id            = aws_security_group.alb.id
   referenced_security_group_id = aws_security_group.ecs_tasks.id
   from_port                    = 8080
   to_port                      = 8080

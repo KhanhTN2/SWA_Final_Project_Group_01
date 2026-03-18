@@ -50,6 +50,7 @@ done
 
 main() {
   local order_image inventory_image notification_image region cluster_name
+  local db_password_secret_name="${PROJECT_NAME}/db/password"
 
   require_command terraform
   require_command aws
@@ -71,6 +72,8 @@ main() {
   }
 
   write_image_env_file "$region" "$order_image" "$inventory_image" "$notification_image"
+
+  purge_secret_if_scheduled_for_deletion "$db_password_secret_name"
 
   terraform -chdir="$TERRAFORM_DIR" apply -auto-approve -lock-timeout=5m \
     -var "aws_region=$region" \

@@ -29,7 +29,7 @@ resource "aws_apigatewayv2_integration" "order" {
   connection_type        = "VPC_LINK"
   integration_method     = "ANY"
   integration_type       = "HTTP_PROXY"
-  integration_uri        = aws_service_discovery_service.order.arn
+  integration_uri        = aws_lb_listener.order_http.arn
   payload_format_version = "1.0"
   timeout_milliseconds   = 30000
 }

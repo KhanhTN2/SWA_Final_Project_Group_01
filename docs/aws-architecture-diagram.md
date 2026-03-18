@@ -1,6 +1,14 @@
 # AWS Architecture Diagram
 
-This diagram is derived from the current Terraform in `infra/terraform/`. It reflects the deployed topology as-is, including ECS tasks in public subnets, API Gateway VPC Link ENIs in private subnets, and the current supporting AWS services used by the three Spring Boot applications.
+This diagram is derived from the current Terraform in `infra/terraform/`. It reflects the deployed topology as-is, including ECS tasks in public subnets, API Gateway VPC Link ENIs plus an internal ALB in private subnets, and the current supporting AWS services used by the three Spring Boot applications.
+
+Rendered PNG: [docs/aws-architecture.png](./aws-architecture.png)
+
+Graphviz source: [docs/aws-architecture.dot](./aws-architecture.dot)
+
+Presentation PNG: [docs/aws-architecture-static.png](./aws-architecture-static.png)
+
+Presentation source: [docs/aws-architecture-static.dot](./aws-architecture-static.dot)
 
 ## Runtime Topology
 
@@ -30,6 +38,7 @@ flowchart TB
 
       subgraph private["Private Subnets (2 AZs)"]
         vpclink["API Gateway VPC Link"]
+        alb["Internal Application Load Balancer<br/>HTTP listener :80<br/>Target group -> order-service:8080"]
         cloudmap["AWS Cloud Map private DNS namespace<br/>aws-modernized-demo.local<br/>+ ECS Service Connect aliases"]
         rds["Amazon RDS for PostgreSQL<br/>single-AZ db.t3.micro"]
         dbsubnet["RDS DB subnet group"]
@@ -42,8 +51,8 @@ flowchart TB
   client --> apigw
   apigw -. "Validate issuer + audience" .-> cognito
   apigw --> vpclink
-  vpclink --> cloudmap
-  cloudmap --> order
+  vpclink --> alb
+  alb -->|"Forward HTTP 8080"| order
 
   ecs --> order
   ecs --> inventory
@@ -93,6 +102,7 @@ flowchart LR
   xray["X-Ray"]
 
   apigwsg["Security Group<br/>apigw_vpc_link"]
+  albsg["Security Group<br/>alb"]
   ecssg["Security Group<br/>ecs_tasks"]
   rdssg["Security Group<br/>rds"]
   msksg["Security Group<br/>msk"]
@@ -116,7 +126,8 @@ flowchart LR
   inventory --> xray
   notification --> xray
 
-  apigwsg -->|"TCP 8080"| ecssg
+  apigwsg -->|"TCP 80"| albsg
+  albsg -->|"TCP 8080"| ecssg
   ecssg -->|"TCP 5432"| rdssg
   ecssg -->|"TCP 9098"| msksg
   ecssg -->|"self TCP 0-65535"| ecssg
@@ -126,7 +137,7 @@ flowchart LR
 
 The diagrams above cover the AWS components currently present in Terraform and runtime configuration. To keep the diagrams readable, some low-level Terraform resources are grouped under their parent service or platform box.
 
-- API Gateway HTTP API, JWT authorizer, stage, routes, and VPC Link
+- API Gateway HTTP API, JWT authorizer, stage, routes, VPC Link, internal ALB, listener, and target group
 - Cognito user pool, app client, resource server, and hosted UI domain
 - VPC, internet gateway, public/private subnets, route tables, route table associations, and the current placement of compute and data services
 - ECS cluster, Fargate services, Cloud Map service registrations, Service Connect aliases, and Cloud Map namespace
