@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "ed9f4483-3cb7-480f-a62e-3009fd83b4fa",
     "name": "AWS Modernized Demo API",
-    "description": "API requests for Demo 1 happy path, Demo 2 failover, and Demo 3 circuit-breaker flows. Set {{access_token}} in the imported environment before running folders.",
+    "description": "API requests for Demo 1 happy path, Demo 2 failover, and Demo 3 circuit-breaker flows. Start with the Auth - Get Token folder to populate {{access_token}}, then run the demo folders.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -15,7 +15,392 @@
       }
     ]
   },
+  "variable": [
+    {
+      "key": "api_gateway_endpoint",
+      "value": "https://h9plh1v379.execute-api.us-east-2.amazonaws.com"
+    },
+    {
+      "key": "cognito_hosted_ui_base_url",
+      "value": "https://modernized-demo-691537867096-auth.auth.us-east-2.amazoncognito.com"
+    },
+    {
+      "key": "cognito_app_client_id",
+      "value": "4catuklagndana6pia57tir3im"
+    },
+    {
+      "key": "cognito_redirect_uri",
+      "value": "https://example.com/callback"
+    },
+    {
+      "key": "cognito_scope",
+      "value": "openid email profile orders/read orders/write"
+    },
+    {
+      "key": "product_number",
+      "value": "PROD001"
+    },
+    {
+      "key": "quantity",
+      "value": "2"
+    },
+    {
+      "key": "demo_username",
+      "value": "demo-user"
+    },
+    {
+      "key": "demo_password",
+      "value": "DemoPassw0rd!"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "id_token",
+      "value": ""
+    },
+    {
+      "key": "refresh_token",
+      "value": ""
+    },
+    {
+      "key": "cognito_login_form_action",
+      "value": ""
+    },
+    {
+      "key": "cognito_csrf",
+      "value": ""
+    },
+    {
+      "key": "cognito_authorization_code",
+      "value": ""
+    },
+    {
+      "key": "cognito_redirect_location",
+      "value": ""
+    },
+    {
+      "key": "access_token_type",
+      "value": ""
+    },
+    {
+      "key": "access_token_expires_in",
+      "value": ""
+    },
+    {
+      "key": "demo1_correlation_id",
+      "value": "demo-happy-path-001"
+    },
+    {
+      "key": "demo1_last_stock",
+      "value": ""
+    },
+    {
+      "key": "demo1_order_id",
+      "value": ""
+    },
+    {
+      "key": "demo1_order_status",
+      "value": ""
+    },
+    {
+      "key": "demo2_correlation_id",
+      "value": "demo-failover-001"
+    },
+    {
+      "key": "demo2_order_id",
+      "value": ""
+    },
+    {
+      "key": "demo3_cb_open_1_correlation_id",
+      "value": "demo-cb-open-001"
+    },
+    {
+      "key": "demo3_cb_open_2_correlation_id",
+      "value": "demo-cb-open-002"
+    },
+    {
+      "key": "demo3_cb_open_3_correlation_id",
+      "value": "demo-cb-open-003"
+    },
+    {
+      "key": "demo3_cb_open_4_correlation_id",
+      "value": "demo-cb-open-004"
+    },
+    {
+      "key": "demo3_recover_1_correlation_id",
+      "value": "demo-cb-recover-001"
+    },
+    {
+      "key": "demo3_recover_1_order_id",
+      "value": ""
+    },
+    {
+      "key": "demo3_recover_2_correlation_id",
+      "value": "demo-cb-recover-002"
+    },
+    {
+      "key": "demo3_recover_2_order_id",
+      "value": ""
+    }
+  ],
   "item": [
+    {
+      "name": "Auth - Get Token",
+      "item": [
+        {
+          "name": "Hosted UI Login Page",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const setVar = (key, value) => {",
+                  "  pm.collectionVariables.set(key, value);",
+                  "  try {",
+                  "    if (pm.environment && pm.environment.name) {",
+                  "      pm.environment.set(key, value);",
+                  "    }",
+                  "  } catch (error) {}",
+                  "};",
+                  "const unsetVar = (key) => {",
+                  "  pm.collectionVariables.unset(key);",
+                  "  try {",
+                  "    if (pm.environment && pm.environment.name) {",
+                  "      pm.environment.unset(key);",
+                  "    }",
+                  "  } catch (error) {}",
+                  "};",
+                  "const getVar = (key) => {",
+                  "  const value = pm.variables.get(key);",
+                  "  if (value !== undefined && value !== null && value !== '') {",
+                  "    return value;",
+                  "  }",
+                  "  return pm.collectionVariables.get(key);",
+                  "};",
+                  "const status = pm.response.code;",
+                  "if ([302, 303].includes(status)) {",
+                  "  const location = pm.response.headers.get('Location') || '';",
+                  "  const codeMatch = location.match(/[?&]code=([^&]+)/);",
+                  "  pm.expect(codeMatch, 'authorization code').to.not.be.null;",
+                  "  setVar('cognito_authorization_code', decodeURIComponent(codeMatch[1]));",
+                  "  setVar('cognito_redirect_location', location);",
+                  "} else {",
+                  "  pm.test('Hosted UI login page is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "  });",
+                  "  const body = pm.response.text();",
+                  "  const formActionMatch = body.match(/<form[^>]+action=\\\"([^\\\"]+)\\\"/);",
+                  "  const csrfMatch = body.match(/name=\\\"_csrf\\\" value=\\\"([^\\\"]+)\\\"/);",
+                  "  pm.expect(formActionMatch, 'login form action').to.not.be.null;",
+                  "  pm.expect(csrfMatch, 'csrf token').to.not.be.null;",
+                  "  const relativeAction = formActionMatch[1].replace(/&amp;/g, '&');",
+                  "  const baseUrl = getVar('cognito_hosted_ui_base_url');",
+                  "  const absoluteAction = relativeAction.startsWith('http') ? relativeAction : `${baseUrl}${relativeAction}`;",
+                  "  setVar('cognito_login_form_action', absoluteAction);",
+                  "  setVar('cognito_csrf', csrfMatch[1]);",
+                  "}",
+                  "unsetVar('access_token');",
+                  "unsetVar('id_token');",
+                  "unsetVar('refresh_token');"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "followRedirects": false
+          },
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{cognito_hosted_ui_base_url}}/login?response_type=code&client_id={{cognito_app_client_id}}&redirect_uri={{cognito_redirect_uri}}&scope={{cognito_scope}}",
+            "description": "Loads the Cognito Hosted UI login page and stores the form action plus CSRF token. If a valid Cognito session cookie already exists, this can return an authorization code redirect directly."
+          }
+        },
+        {
+          "name": "Hosted UI Login Form",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const setVar = (key, value) => {",
+                  "  pm.collectionVariables.set(key, value);",
+                  "  try {",
+                  "    if (pm.environment && pm.environment.name) {",
+                  "      pm.environment.set(key, value);",
+                  "    }",
+                  "  } catch (error) {}",
+                  "};",
+                  "pm.test('Hosted UI login returns redirect', function () {",
+                  "  pm.expect([302, 303]).to.include(pm.response.code);",
+                  "});",
+                  "const location = pm.response.headers.get('Location') || '';",
+                  "const codeMatch = location.match(/[?&]code=([^&]+)/);",
+                  "pm.expect(codeMatch, 'authorization code').to.not.be.null;",
+                  "setVar('cognito_authorization_code', decodeURIComponent(codeMatch[1]));",
+                  "setVar('cognito_redirect_location', location);"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "followRedirects": false
+          },
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "_csrf",
+                  "value": "{{cognito_csrf}}",
+                  "type": "text"
+                },
+                {
+                  "key": "username",
+                  "value": "{{demo_username}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{demo_password}}",
+                  "type": "text"
+                },
+                {
+                  "key": "cognitoAsfData",
+                  "value": "",
+                  "type": "text"
+                },
+                {
+                  "key": "signInSubmitButton",
+                  "value": "Sign in",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": "{{cognito_login_form_action}}",
+            "description": "Submits the Hosted UI login form with the demo credentials and stores the returned authorization code."
+          }
+        },
+        {
+          "name": "Exchange Authorization Code",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const setVar = (key, value) => {",
+                  "  pm.collectionVariables.set(key, value);",
+                  "  try {",
+                  "    if (pm.environment && pm.environment.name) {",
+                  "      pm.environment.set(key, value);",
+                  "    }",
+                  "  } catch (error) {}",
+                  "};",
+                  "pm.test('Token exchange is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "setVar('access_token', body.access_token || '');",
+                  "setVar('id_token', body.id_token || '');",
+                  "setVar('refresh_token', body.refresh_token || '');",
+                  "setVar('access_token_type', body.token_type || '');",
+                  "setVar('access_token_expires_in', body.expires_in !== undefined ? String(body.expires_in) : '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "authorization_code",
+                  "type": "text"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{cognito_app_client_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "redirect_uri",
+                  "value": "{{cognito_redirect_uri}}",
+                  "type": "text"
+                },
+                {
+                  "key": "code",
+                  "value": "{{cognito_authorization_code}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": "{{cognito_hosted_ui_base_url}}/oauth2/token",
+            "description": "Exchanges the authorization code for tokens and stores {{access_token}} for the rest of the collection."
+          }
+        },
+        {
+          "name": "Get UserInfo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('UserInfo is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{cognito_hosted_ui_base_url}}/oauth2/userInfo",
+            "description": "Optional validation request after the token exchange."
+          }
+        }
+      ]
+    },
     {
       "name": "Demo 1 - Happy Path",
       "item": [
@@ -27,12 +412,20 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "const setVar = (key, value) => {",
+                  "  pm.collectionVariables.set(key, value);",
+                  "  try {",
+                  "    if (pm.environment && pm.environment.name) {",
+                  "      pm.environment.set(key, value);",
+                  "    }",
+                  "  } catch (error) {}",
+                  "};",
                   "pm.test('Demo 1 product check is 200', function () {",
                   "  pm.response.to.have.status(200);",
                   "});",
                   "const body = pm.response.json();",
                   "if (body.numberOnStock !== undefined) {",
-                  "  pm.environment.set('demo1_last_stock', String(body.numberOnStock));",
+                  "  setVar('demo1_last_stock', String(body.numberOnStock));",
                   "}"
                 ]
               }
@@ -58,12 +451,20 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "const setVar = (key, value) => {",
+                  "  pm.collectionVariables.set(key, value);",
+                  "  try {",
+                  "    if (pm.environment && pm.environment.name) {",
+                  "      pm.environment.set(key, value);",
+                  "    }",
+                  "  } catch (error) {}",
+                  "};",
                   "pm.test('Demo 1 order create is 201', function () {",
                   "  pm.response.to.have.status(201);",
                   "});",
                   "const body = pm.response.json();",
-                  "pm.environment.set('demo1_order_id', body.orderId || '');",
-                  "pm.environment.set('demo1_order_status', body.status || '');"
+                  "setVar('demo1_order_id', body.orderId || '');",
+                  "setVar('demo1_order_status', body.status || '');"
                 ]
               }
             }
@@ -157,11 +558,19 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "const setVar = (key, value) => {",
+                  "  pm.collectionVariables.set(key, value);",
+                  "  try {",
+                  "    if (pm.environment && pm.environment.name) {",
+                  "      pm.environment.set(key, value);",
+                  "    }",
+                  "  } catch (error) {}",
+                  "};",
                   "pm.test('Demo 2 order create is 201', function () {",
                   "  pm.response.to.have.status(201);",
                   "});",
                   "const body = pm.response.json();",
-                  "pm.environment.set('demo2_order_id', body.orderId || '');"
+                  "setVar('demo2_order_id', body.orderId || '');"
                 ]
               }
             }
@@ -418,11 +827,19 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "const setVar = (key, value) => {",
+                  "  pm.collectionVariables.set(key, value);",
+                  "  try {",
+                  "    if (pm.environment && pm.environment.name) {",
+                  "      pm.environment.set(key, value);",
+                  "    }",
+                  "  } catch (error) {}",
+                  "};",
                   "pm.test('Demo 3 recovery order 1 is 201', function () {",
                   "  pm.response.to.have.status(201);",
                   "});",
                   "const body = pm.response.json();",
-                  "pm.environment.set('demo3_recover_1_order_id', body.orderId || '');"
+                  "setVar('demo3_recover_1_order_id', body.orderId || '');"
                 ]
               }
             }
@@ -511,11 +928,19 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "const setVar = (key, value) => {",
+                  "  pm.collectionVariables.set(key, value);",
+                  "  try {",
+                  "    if (pm.environment && pm.environment.name) {",
+                  "      pm.environment.set(key, value);",
+                  "    }",
+                  "  } catch (error) {}",
+                  "};",
                   "pm.test('Demo 3 recovery order 2 is 201', function () {",
                   "  pm.response.to.have.status(201);",
                   "});",
                   "const body = pm.response.json();",
-                  "pm.environment.set('demo3_recover_2_order_id', body.orderId || '');"
+                  "setVar('demo3_recover_2_order_id', body.orderId || '');"
                 ]
               }
             }

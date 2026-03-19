@@ -10,15 +10,17 @@ Files:
 
 ## What Each Collection Covers
 
-- `aws-modernized-demo-api`: API Gateway requests for Demo 1 happy path, Demo 2 failover flow, Demo 3 circuit-breaker open calls, and Demo 3 recovery calls
+- `aws-modernized-demo-api`: starts with an `Auth - Get Token` folder for Cognito Hosted UI login, then the API Gateway requests for Demo 1 happy path, Demo 2 failover flow, Demo 3 circuit-breaker open calls, and Demo 3 recovery calls
 - `aws-modernized-demo-ops`: ECS scale/stop operations plus CloudWatch Logs lookups used around those demos
 
 ## Import And Setup
 
 1. Import the environment and both collections into Postman.
 2. Select the `AWS Modernized Demo (us-east-2)` environment.
-3. Set `access_token` in the environment before using the API collection.
+3. Run the `Auth - Get Token` folder in the API collection before using the demo folders, or manually set `access_token`.
 4. Set `aws_access_key_id`, `aws_secret_access_key`, and optionally `aws_session_token` before using the ops collection.
+
+The API collection also carries built-in collection variables for the current demo stack, so the auth flow still works if you forget to select the environment. The environment is still recommended, especially if you want the mutable values visible in one place or you need the ops collection.
 
 The checked-in environment already contains the current stack values for:
 
@@ -31,22 +33,37 @@ The checked-in environment already contains the current stack values for:
 
 It intentionally does not include AWS credentials or an API bearer token.
 
-## Access Token
+## Get Token
 
-The API collection expects a bearer token in `{{access_token}}`.
+The `Auth - Get Token` folder inside the API collection mirrors the working Hosted UI flow already used by `scripts/run-aws-demo.py`.
 
-The simplest manual flow in Postman is:
+Run these requests in order:
 
-1. Open the Cognito Hosted UI base URL from `{{cognito_hosted_ui_base_url}}`
-2. Authenticate as `demo-user`
-3. Obtain an access token with scopes:
-   `openid email profile orders/read orders/write`
-4. Paste that token into the `access_token` environment variable
+1. `Hosted UI Login Page`
+2. `Hosted UI Login Form`
+3. `Exchange Authorization Code`
+4. Optional: `Get UserInfo`
+
+The first request intentionally calls Cognito `/login` directly instead of `/oauth2/authorize` so Postman shows the actual login page rather than the empty initial `302` redirect hop.
+
+After `Exchange Authorization Code`, the collection stores:
+
+- `access_token`
+- `id_token`
+- `refresh_token`
+- `access_token_type`
+- `access_token_expires_in`
+
+The API collection uses `{{access_token}}` automatically after that.
 
 The demo user created by the helper scripts defaults to:
 
 - username: `demo-user`
 - password: `DemoPassw0rd!`
+
+Fallback:
+
+- if you prefer, you can still obtain a token manually and paste it into `access_token`
 
 ## AWS Ops Auth
 
@@ -62,31 +79,35 @@ Populate these environment variables before running it:
 
 Demo 1:
 
-1. Run the `Demo 1 - Happy Path` folder in the API collection
-2. Run the `Order Logs By Demo 1 Correlation` and `Notification Logs By Demo 1 Correlation` requests in the ops collection
+1. Run `Auth - Get Token` first if `access_token` is empty
+2. Run the `Demo 1 - Happy Path` folder in the API collection
+3. Run the `Order Logs By Demo 1 Correlation` and `Notification Logs By Demo 1 Correlation` requests in the ops collection
 
 Demo 2:
 
-1. Run `Scale Inventory To 2`
-2. Run `List Inventory Tasks`
-3. Run `Stop Captured Inventory Task`
-4. Run the `Demo 2 - Inventory Failover` folder in the API collection
-5. Run `Order Logs By Demo 2 Correlation`
+1. Run `Auth - Get Token` first if `access_token` is empty
+2. Run `Scale Inventory To 2`
+3. Run `List Inventory Tasks`
+4. Run `Stop Captured Inventory Task`
+5. Run the `Demo 2 - Inventory Failover` folder in the API collection
+6. Run `Order Logs By Demo 2 Correlation`
 
 Demo 3 open:
 
-1. Run `Scale Inventory To 0`
-2. Run the `Demo 3 - Circuit Breaker Open` folder in the API collection
-3. Run `Order Logs - Breaker Events`
-4. Run `Notification Logs - Notification Processed`
+1. Run `Auth - Get Token` first if `access_token` is empty
+2. Run `Scale Inventory To 0`
+3. Run the `Demo 3 - Circuit Breaker Open` folder in the API collection
+4. Run `Order Logs - Breaker Events`
+5. Run `Notification Logs - Notification Processed`
 
 Demo 3 recovery:
 
-1. Run `Scale Inventory Back To 2`
-2. Wait about 12 seconds
-3. Run the `Demo 3 - Circuit Breaker Recovery` folder in the API collection
-4. Optionally run `Order Logs - Breaker Events` again to confirm transition logs
-5. Run `Scale Inventory Back To 1` if you want to return to the normal baseline
+1. Run `Auth - Get Token` first if `access_token` is empty
+2. Run `Scale Inventory Back To 2`
+3. Wait about 12 seconds
+4. Run the `Demo 3 - Circuit Breaker Recovery` folder in the API collection
+5. Optionally run `Order Logs - Breaker Events` again to confirm transition logs
+6. Run `Scale Inventory Back To 1` if you want to return to the normal baseline
 
 ## Notes
 
